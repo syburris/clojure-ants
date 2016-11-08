@@ -17,12 +17,13 @@
 (defn create-ants []
   (for [i (range 0 ant-count)]
     {:x (rand-int width)
-     :y (rand-int height)}))
+     :y (rand-int height)
+     :color (Color/BLACK)}))
 
 (defn draw-ants [context]
   (.clearRect context 0 0 width height)
   (doseq [ant (deref ants)]
-    (.setFill context Color/BLACK)
+    (.setFill context (:color ant))
     (.fillOval context (:x ant) (:y ant) 5 5)))
 
 (defn random-step []
@@ -34,9 +35,10 @@
     :x (+ (random-step) (:x ant))
     :y (+ (random-step) (:y ant))))
   
+(declare aggravate-ant)
 
 (defn move-ants []
-  (pmap move-ant (deref ants)))
+  (doall (pmap aggravate-ant (pmap move-ant (deref ants)))))
 
 (def last-timestamp (atom 0))
 
@@ -44,6 +46,20 @@
   (let [diff (- current-timestamp (deref last-timestamp))
         diff (/ diff 1000000000)]
     (int (/ 1 diff))))
+
+(defn aggravate-ant [ant]
+  (let [nearby-ants (filter
+                      (fn [ant2]
+                        (and
+                             (<= (Math/abs (- (:x ant) (:x ant2))) 10)
+                             (<= (Math/abs (- (:y ant) (:y ant2))) 10)))
+                      (deref ants))]
+    (if (> (count nearby-ants) 1)
+      (assoc ant :color Color/RED)
+      (assoc ant :color Color/BLACK))))
+    
+     
+      
 
 (defn -start [app stage]
   (let [root (FXMLLoader/load (io/resource "main.fxml"))
